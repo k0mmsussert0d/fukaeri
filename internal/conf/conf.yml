@@ -1,0 +1,3 @@
+db:
+  connstring: mognodb+src://username:password@clusterURL
+  name: fukaeri
