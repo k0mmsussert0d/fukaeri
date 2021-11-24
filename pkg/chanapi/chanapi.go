@@ -17,8 +17,8 @@ type Request struct {
 
 var api string = "https://a.4cdn.org"
 var httpClientInstance *http.Client = nil
-var requestsChan *(chan *Request) = nil
-var exitChan *(chan bool) = nil
+var requestsChan (chan *Request)
+var exitChan (chan bool)
 
 func httpClient() *http.Client {
 	if httpClientInstance == nil {
@@ -52,29 +52,37 @@ func fetch(method, endpoint string) []byte {
 	return bodyBytes
 }
 
+func initChans() {
+	requestsChan = make(chan *Request)
+	exitChan = make(chan bool)
+}
+
 func initClient() {
 	var limiter = time.NewTicker(1 * time.Second)
-	*requestsChan = make(chan *Request)
-	*exitChan = make(chan bool)
 	for {
 		select {
-		case req := <-*requestsChan:
+		case req := <-requestsChan:
 			<-limiter.C
 			req.responseChan <- fetch(req.method, req.endpoint)
-		case <-*exitChan:
+		case <-exitChan:
 			return
 		}
 	}
 }
 
 func StartClient() {
+	initChans()
 	go initClient()
+}
+
+func StopClient() {
+	exitChan <- true
 }
 
 func Threads(board string) models.Threads {
 	request := &Request{"GET", fmt.Sprintf("%s/%s/threads.json", api, board), make(chan []byte)}
 
-	*requestsChan <- request
+	requestsChan <- request
 	response := <-request.responseChan
 
 	var returnObj models.Threads
@@ -85,7 +93,7 @@ func Threads(board string) models.Threads {
 func Thread(board string, id string) models.Thread {
 	request := &Request{"GET", fmt.Sprintf("%s/%s/thread/%s.json", api, board, id), make(chan []byte)}
 
-	*requestsChan <- request
+	requestsChan <- request
 	response := <-request.responseChan
 
 	var returnObj models.Thread
