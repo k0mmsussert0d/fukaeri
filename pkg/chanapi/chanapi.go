@@ -5,22 +5,30 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 )
 
-var _api string = "https://a.4cdn.org"
-var _httpClientInstance *http.Client = nil
-
-func httpClient() *http.Client {
-	if _httpClientInstance == nil {
-		_httpClientInstance = &http.Client{}
-	}
-
-	return _httpClientInstance
+type Request struct {
+	method, endpoint string
+	responseChan     chan []byte
 }
 
-func fetch(method, endpoint string, responseObject interface{}) {
+var api string = "https://a.4cdn.org"
+var httpClientInstance *http.Client = nil
+var requestsChan *(chan *Request) = nil
+var exitChan *(chan bool) = nil
+
+func httpClient() *http.Client {
+	if httpClientInstance == nil {
+		httpClientInstance = &http.Client{}
+	}
+
+	return httpClientInstance
+}
+
+func fetch(method, endpoint string) []byte {
 	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
 		fmt.Print(err.Error())
@@ -41,17 +49,46 @@ func fetch(method, endpoint string, responseObject interface{}) {
 		fmt.Print(err.Error())
 	}
 
-	json.Unmarshal(bodyBytes, &responseObject)
+	return bodyBytes
+}
+
+func initClient() {
+	var limiter = time.NewTicker(1 * time.Second)
+	*requestsChan = make(chan *Request)
+	*exitChan = make(chan bool)
+	for {
+		select {
+		case req := <-*requestsChan:
+			<-limiter.C
+			req.responseChan <- fetch(req.method, req.endpoint)
+		case <-*exitChan:
+			return
+		}
+	}
+}
+
+func StartClient() {
+	go initClient()
 }
 
 func Threads(board string) models.Threads {
-	var responseObject models.Threads
-	fetch("GET", fmt.Sprintf("%s/%s/threads.json", _api, board), &responseObject)
-	return responseObject
+	request := &Request{"GET", fmt.Sprintf("%s/%s/threads.json", api, board), make(chan []byte)}
+
+	*requestsChan <- request
+	response := <-request.responseChan
+
+	var returnObj models.Threads
+	json.Unmarshal(response, &returnObj)
+	return returnObj
 }
 
 func Thread(board string, id string) models.Thread {
-	var responseObject models.Thread
-	fetch("GET", fmt.Sprintf("%s/%s/thread/%s.json", _api, board, id), &responseObject)
-	return responseObject
+	request := &Request{"GET", fmt.Sprintf("%s/%s/thread/%s.json", api, board, id), make(chan []byte)}
+
+	*requestsChan <- request
+	response := <-request.responseChan
+
+	var returnObj models.Thread
+	json.Unmarshal(response, &returnObj)
+	return returnObj
 }
