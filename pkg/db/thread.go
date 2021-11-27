@@ -2,33 +2,31 @@ package db
 
 import (
 	"context"
-	"log"
 
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func coll() *mongo.Collection {
-	return database().Collection("threads")
+func Threads(client *mongo.Client) *mongo.Collection {
+	return DB(client).Collection("threads")
 }
 
-func GetThread(no int) models.Thread {
+func GetThread(client *mongo.Client, no int) models.Thread {
 	var res models.Thread
-	err := coll().FindOne(
+	err := Threads(client).FindOne(
 		context.TODO(),
 		bson.D{{"no", no}},
 	).Decode(&res)
 
-	if err != nil {
-		log.Fatal("thread not found")
-	}
+	internal.HandleError(err)
 
 	return res
 }
 
-func SaveThread(thread models.Thread) {
-	coll().InsertOne(
+func SaveThread(client *mongo.Client, thread models.Thread) {
+	Threads(client).InsertOne(
 		context.TODO(),
 		thread,
 	)
