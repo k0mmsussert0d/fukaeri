@@ -9,8 +9,12 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 )
 
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type RestClient struct {
-	httpClient *http.Client
+	httpClient HttpClient
 	endpoint   string
 }
 
