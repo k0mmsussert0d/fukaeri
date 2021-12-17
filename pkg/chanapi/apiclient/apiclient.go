@@ -1,34 +1,66 @@
 package apiclient
 
 import (
-	"errors"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-	"time"
+
+	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/limitedhttpclient"
+	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 )
 
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type ApiClient struct {
-	httpClient *http.Client
-	limiter    *time.Ticker
-	queue      chan http.Request
+	httpClient HttpClient
+	endpoint   string
 }
 
-type httpClientRequest struct {
-	request  *http.Request
-	response <-chan http.Response
+func New(ctx context.Context) *ApiClient {
+	return &ApiClient{
+		httpClient: limitedhttpclient.New(ctx),
+		endpoint:   "https://a.4cdn.org",
+	}
 }
 
-func (client *ApiClient) Init() {
-	client.httpClient = &http.Client{}
-	client.queue = make(chan http.Request, 1)
-	client.limiter = time.NewTicker(1 * time.Second)
-}
-
-func (client *ApiClient) Do(req *http.Request) (*http.Response, error) {
-	request := httpClientRequest{req, make(chan http.Response)}
-
-	for response := range request.response {
-		return &response, nil
+func (client ApiClient) fetch(method, endpoint string) []byte {
+	req, err := http.NewRequest(method, endpoint, nil)
+	if err != nil {
+		fmt.Print(err.Error())
 	}
 
-	return nil, errors.New("whatever")
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.httpClient.Do(req)
+
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	return bodyBytes
+}
+
+func (client ApiClient) Threads(board string) models.Threads {
+	res := client.fetch("GET", fmt.Sprintf("%s/%s/threads.json", client.endpoint, board))
+	var returnObj models.Threads
+	json.Unmarshal(res, &returnObj)
+	return returnObj
+}
+
+func (client ApiClient) Thread(board string, id string) models.Thread {
+	res := client.fetch("GET", fmt.Sprintf("%s/%s/thread/%s.json", client.endpoint, board, id))
+	var returnObj models.Thread
+	json.Unmarshal(res, &returnObj)
+	return returnObj
 }

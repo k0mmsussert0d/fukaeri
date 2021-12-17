@@ -1,19 +1,23 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
-	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi"
+	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 )
 
 func main() {
-	chanapi.StartClient()
-	gThreads := chanapi.Threads("g")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := apiclient.New(ctx)
+	gThreads := client.Threads("g")
 
 	for _, threadsOnPage := range gThreads {
 		for _, threadInfo := range threadsOnPage.Threads {
-			fmt.Print(chanapi.Thread("g", strconv.Itoa(threadInfo.No)))
+			fmt.Print(client.Thread("g", strconv.Itoa(threadInfo.No)))
 		}
 	}
 }
