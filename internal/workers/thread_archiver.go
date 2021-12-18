@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/k0mmsussert0d/fukaeri/internal"
@@ -12,7 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, ctx context.Context) {
+func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
+	defer wg.Done()
 	// lastUpdateTime := time.Now()
 
 	doWork := func() {

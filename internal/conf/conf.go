@@ -12,8 +12,13 @@ type ConfigurationDB struct {
 	Name       string
 }
 
+type ConfigurationArchive struct {
+	Boards []string
+}
+
 type Configuration struct {
-	DB ConfigurationDB
+	DB      ConfigurationDB
+	Archive ConfigurationArchive
 }
 
 var _config *Configuration = nil
