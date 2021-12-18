@@ -2,6 +2,7 @@ package workers
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -15,9 +16,13 @@ import (
 
 func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
+
+	log.Printf("Started archiver for thread %v/%v", board, id)
+
 	lastUpdateTime := time.Now()
 
 	doWork := func() {
+		log.Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
 		thread := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
 
 		mongo := db.DB(db.MongoClient())
@@ -36,13 +41,14 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 		}
 	}
 
-	refreshThreadTicker := time.NewTicker(10 * time.Second)
+	refreshThreadTicker := time.NewTicker(30 * time.Second)
 
 	for {
 		select {
 		case <-refreshThreadTicker.C:
 			doWork()
 		case <-ctx.Done():
+			log.Printf("Thread %v/%v archiver received exit signal. Shutting down.", board, id)
 			return
 		}
 	}
