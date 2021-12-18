@@ -1,0 +1,48 @@
+package workers
+
+import (
+	"context"
+	"strconv"
+	"time"
+
+	"github.com/k0mmsussert0d/fukaeri/internal"
+	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
+	"github.com/k0mmsussert0d/fukaeri/pkg/db"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, ctx context.Context) {
+	// lastUpdateTime := time.Now()
+
+	doWork := func() {
+		// TODO: modify this API to respect If-Modified-Since
+		thread := chanapi.Thread(board, strconv.Itoa(id))
+
+		mongo := db.DB(db.MongoClient())
+
+		doc, err := internal.ToBSONDoc(thread)
+		internal.HandleError(err)
+
+		// replace existing thread document with updated version or create a new one
+		if _, err := mongo.Collection(board).ReplaceOne(
+			ctx,
+			bson.D{{"_id", id}},
+			doc,
+			options.Replace().SetUpsert(true),
+		); err != nil {
+			internal.HandleError(err)
+		}
+	}
+
+	refreshThreadTicker := time.NewTicker(10 * time.Second)
+
+	for {
+		select {
+		case <-refreshThreadTicker.C:
+			doWork()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
