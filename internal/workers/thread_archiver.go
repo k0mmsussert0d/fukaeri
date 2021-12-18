@@ -15,11 +15,10 @@ import (
 
 func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
-	// lastUpdateTime := time.Now()
+	lastUpdateTime := time.Now()
 
 	doWork := func() {
-		// TODO: modify this API to respect If-Modified-Since
-		thread := chanapi.Thread(board, strconv.Itoa(id))
+		thread := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
 
 		mongo := db.DB(db.MongoClient())
 

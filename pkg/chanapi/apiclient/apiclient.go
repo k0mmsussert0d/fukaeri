@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/limitedhttpclient"
 )
 
@@ -34,17 +35,16 @@ func (client ApiClient) fetch(method, endpoint string) []byte {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := client.httpClient.Do(req)
+	return client.fetchRequest(req)
+}
 
-	if err != nil {
-		fmt.Print(err.Error())
-	}
+func (client ApiClient) fetchRequest(request *http.Request) []byte {
+	resp, err := client.httpClient.Do(request)
+	internal.HandleError(err)
 
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Print(err.Error())
-	}
+	internal.HandleError(err)
 
 	return bodyBytes
 }
