@@ -1,0 +1,6 @@
+{
+    "name": "Mongo-Express container",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "mongo-express",
+    "shutdownAction": "none"
+}
