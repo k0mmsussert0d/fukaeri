@@ -37,11 +37,10 @@ func GetNewConfig() *Configuration {
 }
 
 func parseConfig() {
-	config := Configuration{}
 	data, err := os.ReadFile("./conf.yml")
 	check(err)
 
-	err = yaml.Unmarshal(data, &config)
+	err = yaml.Unmarshal(data, &_config)
 	check(err)
 }
 
