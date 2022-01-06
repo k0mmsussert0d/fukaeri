@@ -1,0 +1,8 @@
+db:
+  connstring: mongodb://root:root@mongo:27017
+  name: fukaeri
+archive:
+  boards:
+    # - g
+    - jp
+    # - po

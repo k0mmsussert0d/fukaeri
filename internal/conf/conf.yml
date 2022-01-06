@@ -1,8 +1,0 @@
-db:
-  connstring: mognodb+src://username:password@clusterURL
-  name: fukaeri
-archive:
-  boards:
-    - g
-    - jp
-    - po
