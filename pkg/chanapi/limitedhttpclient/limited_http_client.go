@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"golang.org/x/time/rate"
 )
 
@@ -24,9 +25,12 @@ func New(ctx context.Context) *LimitedHttpClient {
 }
 
 func (client *LimitedHttpClient) Do(req *http.Request) (*http.Response, error) {
+	log.Debug().Printf("Request %v %v queued. Waiting...", req.Method, req.URL)
 	if err := client.limiter.Wait(client.ctx); err != nil {
 		return nil, err
 	}
+
+	log.Debug().Printf("Sending request %v %v", req.Method, req.URL)
 
 	return client.httpClient.Do(req)
 }

@@ -2,17 +2,17 @@ package workers
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
+	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 )
 
 func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
 
-	log.Printf("Started archiver for %v board", board)
+	log.Info().Printf("Started archiver for %v board", board)
 	// threads currently processed by archiver and their workers cancelation functions
 	currentThreads := make(map[int]func())
 	threadsWg := &sync.WaitGroup{}
@@ -32,7 +32,7 @@ func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup,
 		for currentThreadId, cancel := range currentThreads {
 			_, stillActive := activeThreads[currentThreadId]
 			if !stillActive {
-				log.Printf("Thread %v/%v has been archived or deleted – aborting archivization...", board, currentThreadId)
+				log.Info().Printf("Thread %v/%v has been archived or deleted – aborting archivization...", board, currentThreadId)
 				cancel()
 				delete(currentThreads, currentThreadId)
 			}
@@ -42,7 +42,7 @@ func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup,
 		for activeThreadId := range activeThreads {
 			_, alreadyKnown := currentThreads[activeThreadId]
 			if !alreadyKnown {
-				log.Printf("New thread %v/%v appeared. Spinning up new archiver...", board, activeThreadId)
+				log.Info().Printf("New thread %v/%v appeared. Spinning up new archiver...", board, activeThreadId)
 				threadCtx, cancelThread := context.WithCancel(ctx)
 				threadsWg.Add(1)
 				go ArchiveThread(board, activeThreadId, chanapi, threadsWg, threadCtx)
@@ -60,9 +60,9 @@ func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup,
 		case <-refreshBoardTicker.C:
 			continue
 		case <-ctx.Done():
-			log.Printf("Board %v archiver received exit signal. Waiting for thread archivers to exit...", board)
+			log.Info().Printf("Board %v archiver received exit signal. Waiting for thread archivers to exit...", board)
 			threadsWg.Wait()
-			log.Printf("All thread archivers for board %v terminated. Shutting down board archiver", board)
+			log.Info().Printf("All thread archivers for board %v terminated. Shutting down board archiver", board)
 			return
 		}
 	}

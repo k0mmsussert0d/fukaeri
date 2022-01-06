@@ -1,9 +1,9 @@
 package conf
 
 import (
-	"log"
 	"os"
 
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"gopkg.in/yaml.v2"
 )
 
@@ -38,14 +38,8 @@ func GetNewConfig() *Configuration {
 
 func parseConfig() {
 	data, err := os.ReadFile("./conf.yml")
-	check(err)
+	internal.HandleError(err)
 
 	err = yaml.Unmarshal(data, &_config)
-	check(err)
-}
-
-func check(e error) {
-	if e != nil {
-		log.Fatal(e)
-	}
+	internal.HandleError(err)
 }

@@ -1,14 +1,13 @@
 package internal
 
 import (
-	"log"
-
+	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func HandleError(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.Error().Println(err)
 		panic(err)
 	}
 }

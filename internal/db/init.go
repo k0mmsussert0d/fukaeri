@@ -2,10 +2,10 @@ package db
 
 import (
 	"context"
-	"log"
 
 	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/internal/conf"
+	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"github.com/k0mmsussert0d/fukaeri/pkg/db"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,10 +13,10 @@ import (
 
 func InitCollections(ctx context.Context) {
 	boards := conf.GetConfig().Archive.Boards
-	log.Printf("Initializing database collections for boards: %v", boards)
+	log.Info().Printf("Initializing database collections for boards: %v", boards)
 
 	for _, board := range boards {
-		log.Printf("Initializing %v collection", board)
+		log.Info().Printf("Initializing %v collection", board)
 		CreateCollectionIfNotExists(board, ctx)
 	}
 }
