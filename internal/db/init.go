@@ -7,7 +7,7 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/internal/conf"
 	"github.com/k0mmsussert0d/fukaeri/pkg/db"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -22,20 +22,18 @@ func InitCollections(ctx context.Context) {
 }
 
 func CreateCollectionIfNotExists(board string, ctx context.Context) {
-	err := db.DB(db.MongoClient()).CreateCollection(
+	exists, _ := db.DB(db.MongoClient()).ListCollectionNames(
 		ctx,
-		board,
-		options.CreateCollection(),
+		bson.D{{"name", board}},
 	)
 
-	if err != nil {
-		_, ok := err.(mongo.CommandError)
-		if !ok {
-			internal.HandleError(err)
-		} else {
-			log.Printf("Collection for %v board already exists", board)
-		}
-	} else {
-		log.Printf("Created collection for %v board", board)
+	if len(exists) == 0 {
+		err := db.DB(db.MongoClient()).CreateCollection(
+			ctx,
+			board,
+			options.CreateCollection(),
+		)
+
+		internal.HandleError(err)
 	}
 }
