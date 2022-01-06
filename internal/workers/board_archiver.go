@@ -54,9 +54,11 @@ func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup,
 
 	refreshBoardTicker := time.NewTicker(60 * time.Second)
 	for {
+		doWork()
+
 		select {
 		case <-refreshBoardTicker.C:
-			doWork()
+			continue
 		case <-ctx.Done():
 			log.Printf("Board %v archiver received exit signal. Waiting for thread archivers to exit...", board)
 			threadsWg.Wait()

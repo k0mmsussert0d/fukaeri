@@ -7,11 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 	"github.com/k0mmsussert0d/fukaeri/pkg/db"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
@@ -19,34 +16,34 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 
 	log.Printf("Started archiver for thread %v/%v", board, id)
 
-	lastUpdateTime := time.Now()
+	var lastUpdateTime time.Time
 
 	doWork := func() {
-		log.Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
-		thread := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
-
-		mongo := db.DB(db.MongoClient())
-
-		doc, err := internal.ToBSONDoc(thread)
-		internal.HandleError(err)
-
-		// replace existing thread document with updated version or create a new one
-		if _, err := mongo.Collection(board).ReplaceOne(
-			ctx,
-			bson.D{{"_id", id}},
-			doc,
-			options.Replace().SetUpsert(true),
-		); err != nil {
-			internal.HandleError(err)
+		if lastUpdateTime.IsZero() {
+			log.Printf("Fetching full %v/%v thread for the first time", board, id)
+			thread := chanapi.Thread(board, strconv.Itoa(id))
+			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
+		} else {
+			log.Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
+			thread, updated := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
+			if updated {
+				log.Printf("Updating thread %v/%v as new posts appeared", board, id)
+				db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
+			} else {
+				log.Printf("No new posts for thread %v/%v", board, id)
+			}
 		}
+		lastUpdateTime = time.Now()
 	}
 
 	refreshThreadTicker := time.NewTicker(30 * time.Second)
 
 	for {
+		doWork()
+
 		select {
 		case <-refreshThreadTicker.C:
-			doWork()
+			continue
 		case <-ctx.Done():
 			log.Printf("Thread %v/%v archiver received exit signal. Shutting down.", board, id)
 			return

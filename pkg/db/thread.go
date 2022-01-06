@@ -6,28 +6,21 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Threads(client *mongo.Client) *mongo.Collection {
-	return DB(client).Collection("threads")
-}
-
-func GetThread(client *mongo.Client, no int) models.Thread {
-	var res models.Thread
-	err := Threads(client).FindOne(
-		context.TODO(),
-		bson.D{{"no", no}},
-	).Decode(&res)
-
+func SaveOrUpdateThread(board string, id string, thread models.Thread, ctx context.Context) {
+	doc, err := internal.ToBSONDoc(thread)
 	internal.HandleError(err)
 
-	return res
-}
+	mongoDB := DB(MongoClient())
 
-func SaveThread(client *mongo.Client, thread models.Thread) {
-	Threads(client).InsertOne(
-		context.TODO(),
-		thread,
-	)
+	if _, err := mongoDB.Collection(board).ReplaceOne(
+		ctx,
+		bson.D{{"_id", id}},
+		doc,
+		options.Replace().SetUpsert(true),
+	); err != nil {
+		internal.HandleError(err)
+	}
 }
