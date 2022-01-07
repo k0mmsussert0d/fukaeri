@@ -18,25 +18,40 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 
 	var lastUpdateTime time.Time
 
+	refreshRates := []int{10, 20, 30, 45, 60, 90, 180}
+
+	refreshRateIdx := 0
+	initRefreshRate := refreshRates[0]
+
+	refreshThreadTicker := time.NewTicker(time.Duration(initRefreshRate) * time.Second)
+
 	doWork := func() {
+		refreshThreadTicker.Stop()
 		if lastUpdateTime.IsZero() {
 			log.Info().Printf("Fetching full %v/%v thread for the first time", board, id)
 			thread := chanapi.Thread(board, strconv.Itoa(id))
+			refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
 			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
 		} else {
 			log.Info().Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
 			thread, updated := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
 			if updated {
 				log.Info().Printf("Updating thread %v/%v as new posts appeared", board, id)
+				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, initRefreshRate)
+				refreshRateIdx = 0
+				refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
 				db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
 			} else {
 				log.Info().Printf("No new posts for thread %v/%v", board, id)
+				if refreshRateIdx < len(refreshRates)-1 {
+					refreshRateIdx += 1
+				}
+				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, refreshRates[refreshRateIdx])
+				refreshThreadTicker.Reset(time.Duration(refreshRates[refreshRateIdx]) * time.Second)
 			}
 		}
 		lastUpdateTime = time.Now()
 	}
-
-	refreshThreadTicker := time.NewTicker(30 * time.Second)
 
 	for {
 		doWork()
