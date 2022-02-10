@@ -10,6 +10,7 @@ import (
 type ConfigurationDB struct {
 	Connstring string
 	Name       string
+	Files      *string
 }
 
 type ConfigurationArchive struct {

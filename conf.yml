@@ -1,6 +1,7 @@
 db:
   connstring: mongodb://root:root@mongo:27017
   name: fukaeri
+  files: fukaer_files
 archive:
   boards:
     # - g
