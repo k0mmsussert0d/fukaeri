@@ -9,6 +9,7 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 	"github.com/k0mmsussert0d/fukaeri/pkg/db"
+	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 )
 
 func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
@@ -26,12 +27,17 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 	refreshThreadTicker := time.NewTicker(time.Duration(initRefreshRate) * time.Second)
 
 	doWork := func() {
+		writeToDB := func(thread models.Thread) {
+			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
+			db.SaveFilesFromThread(board, thread, chanapi, ctx)
+		}
+
 		refreshThreadTicker.Stop()
 		if lastUpdateTime.IsZero() {
 			log.Info().Printf("Fetching full %v/%v thread for the first time", board, id)
 			thread := chanapi.Thread(board, strconv.Itoa(id))
 			refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
-			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
+			writeToDB(thread)
 		} else {
 			log.Info().Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
 			thread, updated := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
@@ -40,7 +46,7 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, initRefreshRate)
 				refreshRateIdx = 0
 				refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
-				db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
+				writeToDB(thread)
 			} else {
 				log.Info().Printf("No new posts for thread %v/%v", board, id)
 				if refreshRateIdx < len(refreshRates)-1 {

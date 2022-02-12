@@ -48,3 +48,7 @@ func (client ApiClient) ThreadSince(board, id string, since time.Time) (models.T
 	json.Unmarshal(res, &returnObj)
 	return returnObj, true
 }
+
+func (client ApiClient) File(board string, timestamp int64, ext string) []byte {
+	return client.fetch("GET", fmt.Sprintf("%s/%s/%d%s", client.mediaEndpoint, board, timestamp, ext))
+}

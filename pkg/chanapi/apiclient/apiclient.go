@@ -15,14 +15,16 @@ type HttpClient interface {
 }
 
 type ApiClient struct {
-	httpClient HttpClient
-	endpoint   string
+	httpClient    HttpClient
+	endpoint      string
+	mediaEndpoint string
 }
 
 func New(ctx context.Context) *ApiClient {
 	return &ApiClient{
-		httpClient: limitedhttpclient.New(ctx),
-		endpoint:   "https://a.4cdn.org",
+		httpClient:    limitedhttpclient.New(ctx),
+		endpoint:      "https://a.4cdn.org",
+		mediaEndpoint: "https://i.4cdn.org",
 	}
 }
 
