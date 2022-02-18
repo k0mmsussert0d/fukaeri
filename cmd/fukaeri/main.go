@@ -18,7 +18,9 @@ func main() {
 	defer cancel()
 
 	go func() {
-		for range c {
+		for {
+			<-c
+			log.Warn().Print("RECEIVED EXIT SIGNAL! Terminating all workers")
 			cancel()
 		}
 	}()
