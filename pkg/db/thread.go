@@ -28,7 +28,8 @@ func SaveOrUpdateThread(board string, id string, thread models.Thread, ctx conte
 }
 
 func SaveFilesFromThread(board string, thread models.Thread, chanapi apiclient.ApiClient, ctx context.Context) {
-	for _, post := range thread.Posts {
+	savePost := func(thread models.Thread, post_idx int) {
+		post := thread.Posts[post_idx]
 		if post.Filename != "" {
 			md5, err := base64.StdEncoding.DecodeString(post.Md5)
 			internal.HandleError(err)
@@ -47,4 +48,12 @@ func SaveFilesFromThread(board string, thread models.Thread, chanapi apiclient.A
 		}
 	}
 
+	for idx := range thread.Posts {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			savePost(thread, idx)
+		}
+	}
 }
