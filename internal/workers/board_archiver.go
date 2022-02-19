@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 )
@@ -18,11 +19,20 @@ func ArchiveBoard(board string, chanapi apiclient.ApiClient, wg *sync.WaitGroup,
 	threadsWg := &sync.WaitGroup{}
 
 	doWork := func() {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Error().Printf("An error occured while archiving board %v: %v", board, r)
+			}
+		}()
+
 		// threads currently active on a board
 		activeThreads := make(map[int]interface{})
 
 		// fetch all active threads from a board
-		for _, threadsOnPage := range chanapi.Threads(board) {
+		threads, err := chanapi.Threads(ctx, board)
+		internal.HandleError(err)
+		for _, threadsOnPage := range *threads {
 			for _, threadInfo := range threadsOnPage.Threads {
 				activeThreads[threadInfo.No] = nil
 			}

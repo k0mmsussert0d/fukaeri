@@ -2,7 +2,6 @@ package apiclient
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -11,7 +10,7 @@ import (
 )
 
 type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
+	Do(ctx context.Context, req *http.Request) (*http.Response, error)
 }
 
 type ApiClient struct {
@@ -20,33 +19,50 @@ type ApiClient struct {
 	mediaEndpoint string
 }
 
-func New(ctx context.Context) *ApiClient {
+func New() *ApiClient {
 	return &ApiClient{
-		httpClient:    limitedhttpclient.New(ctx),
+		httpClient:    limitedhttpclient.New(),
 		endpoint:      "https://a.4cdn.org",
 		mediaEndpoint: "https://i.4cdn.org",
 	}
 }
 
-func (client ApiClient) fetch(method, endpoint string) []byte {
+func (client ApiClient) fetch(ctx context.Context, method, endpoint string, dst *[]byte) (err error) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			err = internal.ConvertPanicToError(r)
+		}
+	}()
+
 	req, err := http.NewRequest(method, endpoint, nil)
-	if err != nil {
-		fmt.Print(err.Error())
-	}
+	internal.HandleError(err)
 
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 
-	return client.fetchRequest(req)
+	err = client.fetchRequest(ctx, req, dst)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (client ApiClient) fetchRequest(request *http.Request) []byte {
-	resp, err := client.httpClient.Do(request)
+func (client ApiClient) fetchRequest(ctx context.Context, request *http.Request, dst *[]byte) (err error) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			err = internal.ConvertPanicToError(r)
+		}
+	}()
+
+	resp, err := client.httpClient.Do(ctx, request)
 	internal.HandleError(err)
 
 	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	*dst, err = ioutil.ReadAll(resp.Body)
 	internal.HandleError(err)
 
-	return bodyBytes
+	return nil
 }

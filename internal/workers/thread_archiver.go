@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/internal/log"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 	"github.com/k0mmsussert0d/fukaeri/pkg/db"
@@ -27,6 +28,13 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 	refreshThreadTicker := time.NewTicker(time.Duration(initRefreshRate) * time.Second)
 
 	doWork := func() {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Error().Printf("An error occured while archiving thread %v/%v: %v", board, id, r)
+			}
+		}()
+
 		writeToDB := func(thread models.Thread) {
 			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
 			db.SaveFilesFromThread(board, thread, chanapi, ctx)
@@ -35,18 +43,20 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 		refreshThreadTicker.Stop()
 		if lastUpdateTime.IsZero() {
 			log.Info().Printf("Fetching full %v/%v thread for the first time", board, id)
-			thread := chanapi.Thread(board, strconv.Itoa(id))
+			thread, err := chanapi.Thread(ctx, board, strconv.Itoa(id))
+			internal.HandleError(err)
 			refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
-			writeToDB(thread)
+			writeToDB(*thread)
 		} else {
 			log.Info().Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
-			thread, updated := chanapi.ThreadSince(board, strconv.Itoa(id), lastUpdateTime)
-			if updated {
+			thread, err := chanapi.ThreadSince(ctx, board, strconv.Itoa(id), lastUpdateTime)
+			internal.HandleError(err)
+			if thread != nil {
 				log.Info().Printf("Updating thread %v/%v as new posts appeared", board, id)
 				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, initRefreshRate)
 				refreshRateIdx = 0
 				refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
-				writeToDB(thread)
+				writeToDB(*thread)
 			} else {
 				log.Info().Printf("No new posts for thread %v/%v", board, id)
 				if refreshRateIdx < len(refreshRates)-1 {

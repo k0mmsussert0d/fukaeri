@@ -12,25 +12,39 @@ type LimitedHttpClient struct {
 	httpClient *http.Client
 	limiter    *rate.Limiter
 	queue      chan http.Request
-	ctx        context.Context
 }
 
-func New(ctx context.Context) *LimitedHttpClient {
+func New() *LimitedHttpClient {
 	return &LimitedHttpClient{
 		httpClient: &http.Client{},
 		queue:      make(chan http.Request, 1),
 		limiter:    rate.NewLimiter(rate.Limit(1), 1),
-		ctx:        ctx,
 	}
 }
 
-func (client *LimitedHttpClient) Do(req *http.Request) (*http.Response, error) {
+func (client *LimitedHttpClient) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	log.Debug().Printf("Request %v %v queued. Waiting...", req.Method, req.URL)
-	if err := client.limiter.Wait(client.ctx); err != nil {
-		return nil, err
+	select {
+	case <-client.rateLimiterChan(ctx):
+		log.Debug().Printf("Sending request %v %v", req.Method, req.URL)
+		return client.httpClient.Do(req)
+	case <-ctx.Done():
+		log.Debug().Printf("Request %v %v aborted", req.Method, req.URL)
+		return nil, ctx.Err()
 	}
+}
 
-	log.Debug().Printf("Sending request %v %v", req.Method, req.URL)
-
-	return client.httpClient.Do(req)
+func (client *LimitedHttpClient) rateLimiterChan(ctx context.Context) <-chan interface{} {
+	readyStream := make(chan interface{}, 1)
+	go func() {
+		defer close(readyStream)
+		for {
+			if err := client.limiter.Wait(ctx); err != nil {
+				return
+			} else {
+				readyStream <- 0
+			}
+		}
+	}()
+	return readyStream
 }
