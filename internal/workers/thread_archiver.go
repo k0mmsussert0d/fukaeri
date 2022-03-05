@@ -2,6 +2,7 @@ package workers
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"sync"
 	"time"
@@ -31,11 +32,24 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 		defer func() {
 			r := recover()
 			if r != nil {
-				log.Error().Printf("An error occured while archiving thread %v/%v: %v", board, id, r)
+				switch x := r.(type) {
+				case internal.FukaeriError:
+				case error:
+					if !errors.Is(x, context.Canceled) { // context cancelation errors are expected
+						internal.HandleError(internal.WrapError(x, "An error occured while archiving thread %v/%v", board, id))
+					}
+				default:
+					err := internal.WrapError(errors.New("Unknown error occured while archiving thread"), "Unknown error occured while archiving thread %v/%v", board, id)
+					err.Misc["org_value"] = x
+					internal.HandleError(err)
+				}
 			}
 		}()
 
 		writeToDB := func(thread models.Thread) {
+			if ctx.Err() != nil {
+				return
+			}
 			db.SaveOrUpdateThread(board, strconv.Itoa(id), thread, ctx)
 			db.SaveFilesFromThread(board, thread, chanapi, ctx)
 		}

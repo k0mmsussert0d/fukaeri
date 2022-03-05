@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/k0mmsussert0d/fukaeri/internal/log"
+	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/models"
 )
 
@@ -16,7 +16,7 @@ func (client ApiClient) Threads(ctx context.Context, board string) (*models.Thre
 	var res []byte
 	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/threads.json", client.endpoint, board), &res)
 	if err != nil {
-		return nil, err
+		return nil, internal.WrapError(err, "Failed to fetch %s threadslist", board)
 	}
 	var returnObj models.Threads
 	json.Unmarshal(res, &returnObj)
@@ -27,7 +27,7 @@ func (client ApiClient) Thread(ctx context.Context, board string, id string) (*m
 	var res []byte
 	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/thread/%s.json", client.endpoint, board, id), &res)
 	if err != nil {
-		return nil, err
+		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s", board, id)
 	}
 	var returnObj models.Thread
 	json.Unmarshal(res, &returnObj)
@@ -37,8 +37,7 @@ func (client ApiClient) Thread(ctx context.Context, board string, id string) (*m
 func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since time.Time) (*models.Thread, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/thread/%s.json", client.endpoint, board, id), nil)
 	if err != nil {
-		log.Error().Println(err)
-		return nil, err
+		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s since %v", board, id, since)
 	}
 
 	req.Header.Add("Accept", "application/json")
@@ -47,8 +46,7 @@ func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since
 
 	resp, err := client.httpClient.Do(ctx, req)
 	if err != nil {
-		log.Error().Println(err)
-		return nil, err
+		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s since %v", board, id, since)
 	}
 
 	if resp.StatusCode == 304 {
@@ -59,7 +57,7 @@ func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since
 
 	res, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Println(err)
+		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s since %v", board, id, since)
 	}
 	var returnObj models.Thread
 	json.Unmarshal(res, &returnObj)
@@ -70,7 +68,7 @@ func (client ApiClient) File(ctx context.Context, board string, timestamp int64,
 	var res []byte
 	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/%d%s", client.mediaEndpoint, board, timestamp, ext), &res)
 	if err != nil {
-		return nil, err
+		return nil, internal.WrapError(err, "Failed to fetch file %s/%v.%s", board, timestamp, ext)
 	}
 	return &res, nil
 }
