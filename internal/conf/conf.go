@@ -20,32 +20,20 @@ type ConfigurationArchive struct {
 type Configuration struct {
 	DB       ConfigurationDB
 	Archive  ConfigurationArchive
-	LogLevel string
+	LogLevel string `yaml:"log_level"`
 }
-
-var _config *Configuration = nil
 
 func GetConfig() *Configuration {
-	if _config == nil {
-		parseConfig()
-	}
-
-	return _config
-}
-
-func GetNewConfig() *Configuration {
-	parseConfig()
-	return _config
-}
-
-func parseConfig() {
+	var config *Configuration
 	data, err := os.ReadFile("./conf.yml")
 	if err != nil {
 		log.Panic(err.Error())
 	}
 
-	err = yaml.Unmarshal(data, &_config)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		log.Panic(err.Error())
 	}
+
+	return config
 }

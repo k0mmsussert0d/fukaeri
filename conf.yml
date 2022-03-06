@@ -5,4 +5,4 @@ db:
 archive:
   boards:
     - po
-loglevel: INFO
+log_level: INFO
