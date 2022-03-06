@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	log.Init(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	// log.Init(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	log.Auto()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())

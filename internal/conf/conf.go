@@ -1,9 +1,9 @@
 package conf
 
 import (
+	"log"
 	"os"
 
-	"github.com/k0mmsussert0d/fukaeri/internal"
 	"gopkg.in/yaml.v2"
 )
 
@@ -18,8 +18,9 @@ type ConfigurationArchive struct {
 }
 
 type Configuration struct {
-	DB      ConfigurationDB
-	Archive ConfigurationArchive
+	DB       ConfigurationDB
+	Archive  ConfigurationArchive
+	LogLevel string
 }
 
 var _config *Configuration = nil
@@ -39,8 +40,12 @@ func GetNewConfig() *Configuration {
 
 func parseConfig() {
 	data, err := os.ReadFile("./conf.yml")
-	internal.HandleError(err)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 
 	err = yaml.Unmarshal(data, &_config)
-	internal.HandleError(err)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 }

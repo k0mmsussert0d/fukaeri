@@ -3,6 +3,9 @@ package log
 import (
 	"io"
 	"log"
+	"os"
+
+	"github.com/k0mmsussert0d/fukaeri/internal/conf"
 )
 
 var (
@@ -11,6 +14,22 @@ var (
 	warning *log.Logger
 	err     *log.Logger
 )
+
+func Auto() {
+	switch level := conf.GetConfig().LogLevel; level {
+	case "ERROR":
+		Init(io.Discard, io.Discard, io.Discard, os.Stderr)
+	case "WARN":
+		Init(io.Discard, io.Discard, os.Stdout, os.Stderr)
+	case "INFO":
+		Init(io.Discard, os.Stdout, os.Stdout, os.Stderr)
+	case "DEBUG":
+		Init(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	default:
+		log.Panicf("Unrecognized log level option %v", level)
+	}
+
+}
 
 func Init(
 	debugHandle io.Writer,
