@@ -10,6 +10,7 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/internal"
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 	mockedhttpclient "github.com/k0mmsussert0d/fukaeri/pkg/chanapi/mocked_http_client"
+	"gotest.tools/v3/assert"
 )
 
 var apiClient *apiclient.ApiClient = nil
@@ -40,10 +41,17 @@ func TestThreads(t *testing.T) {
 	}
 	mockedHttpClient.On("GET", "https://a.example.com/po/threads.json").Return(200, responseBody, headers(map[string][]string{}))
 
-	_, err = apiClient.Threads(context.TODO(), "po")
+	threads, err := apiClient.Threads(context.TODO(), "po")
 
-	if err != nil {
-		t.Errorf("apiClient.Threads(\"po\") returned an error: %v", err)
+	assert.NilError(t, err)
+	assert.Equal(t, len(*threads), 10)
+	assert.Equal(t, (*threads)[0].Threads[0].No, 570368)
+	assert.Equal(t, (*threads)[0].Threads[0].LastModified, 1546294897)
+	assert.Equal(t, (*threads)[0].Threads[0].Replies, 2)
+
+	for idx, page := range *threads {
+		assert.Equal(t, page.Page, idx+1)
+		assert.Equal(t, len(page.Threads), 15)
 	}
 }
 
