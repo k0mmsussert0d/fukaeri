@@ -55,6 +55,23 @@ func TestThreads(t *testing.T) {
 	}
 }
 
+func TestThread(t *testing.T) {
+	responseBody, err := os.ReadFile("./test_bodies/570368.json")
+	if err != nil {
+		internal.HandleError(err)
+	}
+	mockedHttpClient.On("GET", "https://a.example.com/po/thread/570368.json").Return(200, responseBody, headers(map[string][]string{}))
+
+	thread, err := apiClient.Thread(context.TODO(), "po", "570368")
+
+	assert.NilError(t, err)
+	assert.Equal(t, len(thread.Posts), 3)
+	assert.Equal(t, thread.Posts[0].No, 570368)
+	assert.Equal(t, thread.Posts[0].Sub, "Welcome to /po/!")
+	assert.Equal(t, thread.Posts[0].Filename, "yotsuba_folding")
+	assert.Equal(t, thread.Posts[0].Md5, "uZUeZeB14FVR+Mc2ScHvVA==")
+}
+
 func headers(headers map[string][]string) map[string][]string {
 	for k, v := range corsHeaders {
 		headers[k] = v
