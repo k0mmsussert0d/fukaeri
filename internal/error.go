@@ -31,6 +31,7 @@ func HandleError(err error) {
 			log.Debug().Println(ferr.Message)
 		} else {
 			log.Error().Println(ferr.Message)
+			log.Error().Println(ferr.StackTrace)
 		}
 		panic(ferr)
 	}
