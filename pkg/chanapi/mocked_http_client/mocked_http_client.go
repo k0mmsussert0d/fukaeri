@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/k0mmsussert0d/fukaeri/internal/log"
@@ -83,7 +83,7 @@ var httpStatuses = map[int]string{
 }
 
 func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-	method, host := req.Method, req.Host
+	method, host := req.Method, req.URL.String()
 	response, exists := client.requests[Request{method, host}]
 	if !exists {
 		log.Error().Panicf("Response to %v %v has not been defined", method, host)
@@ -94,21 +94,14 @@ func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*htt
 		responseStatusString = fmt.Sprintf("%v", response.code)
 	}
 
-	var httpResponse *http.Response
-	httpResponse = &http.Response{
-		Status:     responseStatusString,
-		StatusCode: response.code,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     response.headers,
-		Body: struct {
-			io.Reader
-			io.Closer
-		}{
-			bytes.NewReader(response.body),
-			httpResponse.Body,
-		},
+	httpResponse := &http.Response{
+		Status:        responseStatusString,
+		StatusCode:    response.code,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Header:        response.headers,
+		Body:          ioutil.NopCloser(bytes.NewReader(response.body)),
 		ContentLength: int64(len(response.body)),
 		Close:         false,
 		Uncompressed:  true,

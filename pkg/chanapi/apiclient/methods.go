@@ -14,7 +14,7 @@ import (
 
 func (client ApiClient) Threads(ctx context.Context, board string) (*models.Threads, error) {
 	var res []byte
-	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/threads.json", client.endpoint, board), &res)
+	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/threads.json", client.Endpoint, board), &res)
 	if err != nil {
 		return nil, internal.WrapError(err, "Failed to fetch %s threadslist", board)
 	}
@@ -25,7 +25,7 @@ func (client ApiClient) Threads(ctx context.Context, board string) (*models.Thre
 
 func (client ApiClient) Thread(ctx context.Context, board string, id string) (*models.Thread, error) {
 	var res []byte
-	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/thread/%s.json", client.endpoint, board, id), &res)
+	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/thread/%s.json", client.Endpoint, board, id), &res)
 	if err != nil {
 		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s", board, id)
 	}
@@ -35,7 +35,7 @@ func (client ApiClient) Thread(ctx context.Context, board string, id string) (*m
 }
 
 func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since time.Time) (*models.Thread, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/thread/%s.json", client.endpoint, board, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/thread/%s.json", client.Endpoint, board, id), nil)
 	if err != nil {
 		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s since %v", board, id, since)
 	}
@@ -44,7 +44,7 @@ func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("If-Modified-Since", since.Local().Format(http.TimeFormat))
 
-	resp, err := client.httpClient.Do(ctx, req)
+	resp, err := client.HttpClient.Do(ctx, req)
 	if err != nil {
 		return nil, internal.WrapError(err, "Failed to fetch thread %s/%s since %v", board, id, since)
 	}
@@ -66,7 +66,7 @@ func (client ApiClient) ThreadSince(ctx context.Context, board, id string, since
 
 func (client ApiClient) File(ctx context.Context, board string, timestamp int64, ext string) (*[]byte, error) {
 	var res []byte
-	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/%d%s", client.mediaEndpoint, board, timestamp, ext), &res)
+	err := client.fetch(ctx, "GET", fmt.Sprintf("%s/%s/%d%s", client.MediaEndpoint, board, timestamp, ext), &res)
 	if err != nil {
 		return nil, internal.WrapError(err, "Failed to fetch file %s/%v.%s", board, timestamp, ext)
 	}

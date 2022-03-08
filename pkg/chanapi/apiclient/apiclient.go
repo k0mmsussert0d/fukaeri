@@ -14,16 +14,16 @@ type HttpClient interface {
 }
 
 type ApiClient struct {
-	httpClient    HttpClient
-	endpoint      string
-	mediaEndpoint string
+	HttpClient    HttpClient
+	Endpoint      string
+	MediaEndpoint string
 }
 
 func New() *ApiClient {
 	return &ApiClient{
-		httpClient:    limitedhttpclient.New(),
-		endpoint:      "https://a.4cdn.org",
-		mediaEndpoint: "https://i.4cdn.org",
+		HttpClient:    limitedhttpclient.New(),
+		Endpoint:      "https://a.4cdn.org",
+		MediaEndpoint: "https://i.4cdn.org",
 	}
 }
 
@@ -57,7 +57,7 @@ func (client ApiClient) fetchRequest(ctx context.Context, request *http.Request,
 		}
 	}()
 
-	resp, err := client.httpClient.Do(ctx, request)
+	resp, err := client.HttpClient.Do(ctx, request)
 	internal.HandleError(err)
 
 	defer resp.Body.Close()
