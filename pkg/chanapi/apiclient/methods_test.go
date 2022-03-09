@@ -11,6 +11,7 @@ import (
 	"github.com/k0mmsussert0d/fukaeri/pkg/chanapi/apiclient"
 	mockedhttpclient "github.com/k0mmsussert0d/fukaeri/pkg/chanapi/mocked_http_client"
 	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 var apiClient *apiclient.ApiClient = nil
@@ -70,6 +71,34 @@ func TestThread(t *testing.T) {
 	assert.Equal(t, thread.Posts[0].Sub, "Welcome to /po/!")
 	assert.Equal(t, thread.Posts[0].Filename, "yotsuba_folding")
 	assert.Equal(t, thread.Posts[0].Md5, "uZUeZeB14FVR+Mc2ScHvVA==")
+}
+
+func TestThreadSince(t *testing.T) {
+	responseBody, err := os.ReadFile("./test_bodies/570368.json")
+	internal.HandleError(err)
+	lastModified := time.Now().Add(time.Duration(5) * time.Minute).Format(http.TimeFormat)
+
+	t.Run("No new posts since", func(t *testing.T) {
+		mockedHttpClient.On("GET", "https://a.example.com/po/thread/570368.json").Return(304, responseBody, headers(map[string][]string{"last-modified": {lastModified}}))
+
+		thread, err := apiClient.ThreadSince(context.TODO(), "po", "570368", time.Now())
+
+		assert.NilError(t, err)
+		assert.Assert(t, is.Nil(thread))
+	})
+
+	t.Run("New posts since", func(t *testing.T) {
+		mockedHttpClient.On("GET", "https://a.example.com/po/thread/570368.json").Return(200, responseBody, headers(map[string][]string{"last-modified": {lastModified}}))
+
+		thread, err := apiClient.ThreadSince(context.TODO(), "po", "570368", time.Now())
+
+		assert.NilError(t, err)
+		assert.Equal(t, len(thread.Posts), 3)
+		assert.Equal(t, thread.Posts[0].No, 570368)
+		assert.Equal(t, thread.Posts[0].Sub, "Welcome to /po/!")
+		assert.Equal(t, thread.Posts[0].Filename, "yotsuba_folding")
+		assert.Equal(t, thread.Posts[0].Md5, "uZUeZeB14FVR+Mc2ScHvVA==")
+	})
 }
 
 func headers(headers map[string][]string) map[string][]string {
