@@ -2,6 +2,7 @@ package limitedhttpclient
 
 import (
 	"context"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/k0mmsussert0d/fukaeri/internal/log"
@@ -22,15 +23,24 @@ func New() *LimitedHttpClient {
 	}
 }
 
-func (client *LimitedHttpClient) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (client *LimitedHttpClient) Do(ctx context.Context, req *http.Request) (res *http.Response, body []byte, err error) {
 	log.Debug().Printf("Request %v %v queued. Waiting...", req.Method, req.URL)
 	select {
 	case <-client.rateLimiterChan(ctx):
 		log.Debug().Printf("Sending request %v %v", req.Method, req.URL)
-		return client.httpClient.Do(req)
+
+		res, err = client.httpClient.Do(req)
+		if err != nil {
+			return
+		}
+
+		defer res.Body.Close()
+		body, err = ioutil.ReadAll(res.Body)
+		return
 	case <-ctx.Done():
 		log.Debug().Printf("Request %v %v aborted", req.Method, req.URL)
-		return nil, ctx.Err()
+
+		return nil, nil, ctx.Err()
 	}
 }
 

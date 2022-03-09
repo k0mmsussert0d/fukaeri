@@ -2,7 +2,6 @@ package apiclient
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/k0mmsussert0d/fukaeri/internal"
@@ -10,7 +9,7 @@ import (
 )
 
 type HttpClient interface {
-	Do(ctx context.Context, req *http.Request) (*http.Response, error)
+	Do(ctx context.Context, req *http.Request) (*http.Response, []byte, error)
 }
 
 type ApiClient struct {
@@ -27,7 +26,7 @@ func New() *ApiClient {
 	}
 }
 
-func (client ApiClient) fetch(ctx context.Context, method, endpoint string, dst *[]byte) (err error) {
+func (client ApiClient) fetch(ctx context.Context, method, endpoint string) (body []byte, err error) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -41,15 +40,11 @@ func (client ApiClient) fetch(ctx context.Context, method, endpoint string, dst 
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 
-	err = client.fetchRequest(ctx, req, dst)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	body, err = client.fetchRequest(ctx, req)
+	return
 }
 
-func (client ApiClient) fetchRequest(ctx context.Context, request *http.Request, dst *[]byte) (err error) {
+func (client ApiClient) fetchRequest(ctx context.Context, request *http.Request) (body []byte, err error) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -57,12 +52,7 @@ func (client ApiClient) fetchRequest(ctx context.Context, request *http.Request,
 		}
 	}()
 
-	resp, err := client.HttpClient.Do(ctx, request)
+	_, body, err = client.HttpClient.Do(ctx, request)
 	internal.HandleError(err)
-
-	defer resp.Body.Close()
-	*dst, err = ioutil.ReadAll(resp.Body)
-	internal.HandleError(err)
-
-	return nil
+	return
 }

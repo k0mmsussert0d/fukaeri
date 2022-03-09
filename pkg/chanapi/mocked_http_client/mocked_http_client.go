@@ -82,7 +82,7 @@ var httpStatuses = map[int]string{
 	504: "504 Gateway Timeout",
 }
 
-func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
 	method, host := req.Method, req.URL.String()
 	response, exists := client.requests[Request{method, host}]
 	if !exists {
@@ -108,5 +108,5 @@ func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*htt
 		Request:       req,
 	}
 
-	return httpResponse, nil
+	return httpResponse, response.body, nil
 }

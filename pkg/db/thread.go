@@ -43,7 +43,7 @@ func SaveFilesFromThread(board string, thread models.Thread, chanapi apiclient.A
 				}
 				file, err := chanapi.File(ctx, board, post.Tim, post.Ext)
 				internal.HandleError(err)
-				SaveFile(*file, md5, details)
+				SaveFile(file, md5, details)
 			} else {
 				AddPostToFile(md5, post.Tim)
 			}
