@@ -1,0 +1,5 @@
+.devcontainer/
+.mongocontainer/
+.mongoexpresscontainer/
+.vscode/
+mongodb/
