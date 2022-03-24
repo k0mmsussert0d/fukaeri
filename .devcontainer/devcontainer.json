@@ -1,6 +1,6 @@
 {
 	"name": "Go",
-	"dockerComposeFile": ["../docker-compose.yml"],
+	"dockerComposeFile": ["../docker-compose.dev.yml"],
 	"service": "dev",
 	"settings": {
 		"go.toolsManagement.checkForUpdates": "local",

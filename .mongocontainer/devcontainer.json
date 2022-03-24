@@ -1,6 +1,6 @@
 {
     "name": "MongoDB container",
-    "dockerComposeFile": ["../docker-compose.yml"],
+    "dockerComposeFile": ["../docker-compose.dev.yml"],
     "service": "mongo",
     "shutdownAction": "none"
 }
