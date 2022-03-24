@@ -1,0 +1,28 @@
+version: '3'
+services:
+  fukaeri:
+    image: k0mmsussert0d/fukaeri:latest
+    volumes:
+      - './conf.yml:/app/conf.yml'
+    restart: always
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:5.0
+    restart: always
+    volumes:
+      - './mongodb:/data/db'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+  mongo-express:
+    image: mongo-express:latest
+    restart: unless-stopped
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://root:root@mongo:27017/
+    depends_on:
+      - mongo
