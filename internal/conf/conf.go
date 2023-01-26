@@ -1,39 +1,43 @@
 package conf
 
 import (
-	"log"
-	"os"
+	"fmt"
 
-	"gopkg.in/yaml.v2"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
-type ConfigurationDB struct {
-	Connstring string
-	Name       string
-	Files      *string
-}
-
-type ConfigurationArchive struct {
-	Boards []string
-}
-
 type Configuration struct {
-	DB       ConfigurationDB
-	Archive  ConfigurationArchive
-	LogLevel string `yaml:"log_level"`
+	DB struct {
+		Connstring string
+		Collection string
+		Files      string
+	}
+	Archive struct {
+		Boards []string
+	}
 }
 
-func GetConfig() *Configuration {
-	var config *Configuration
-	data, err := os.ReadFile("./conf.yml")
-	if err != nil {
-		log.Panic(err.Error())
-	}
+var c Configuration
 
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		log.Panic(err.Error())
-	}
+func Init() {
+	viper.SetConfigName("conf")
+	viper.SetConfigType("yml")
+	viper.AddConfigPath(".")
+	viper.SetDefault("db.collection", "fukaeri")
+	viper.SetDefault("db.files", "fukaeri_files")
 
-	return config
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("failed to read config file, %v", err))
+	}
+	viper.Unmarshal(&c)
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		viper.Unmarshal(&c)
+	})
+	viper.WatchConfig()
+}
+
+func Get() Configuration {
+	return c
 }

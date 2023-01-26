@@ -9,7 +9,7 @@ import (
 )
 
 func StartArchiving(ctx context.Context) {
-	boards := conf.GetConfig().Archive.Boards
+	boards := conf.Get().Archive.Boards
 	chanapi := apiclient.New()
 
 	boardsWg := &sync.WaitGroup{}

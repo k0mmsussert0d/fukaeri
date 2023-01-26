@@ -24,16 +24,13 @@ type FileDetails struct {
 
 func FileExists(md5 []byte) bool {
 	mongoDB := DB(MongoClient())
-	fs := conf.GetConfig().DB.Files
-	if fs == nil {
-		*fs = "fs"
-	}
+	fs := conf.Get().DB.Files
 
-	log.Debug().Printf("Checking if file with md5 checksum %x exists in %s bucket", md5, *fs)
+	log.Debug().Printf("Checking if file with md5 checksum %x exists in %s bucket", md5, fs)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	res := mongoDB.Collection(fmt.Sprintf("%s.%s", *fs, "files")).FindOne(
+	res := mongoDB.Collection(fmt.Sprintf("%s.%s", fs, "files")).FindOne(
 		ctx,
 		bson.D{{"metadata", bson.D{{"md5", md5}}}},
 	)
@@ -49,19 +46,16 @@ func FileExists(md5 []byte) bool {
 
 func SaveFile(file []byte, md5 []byte, details FileDetails) {
 	mongoDB := DB(MongoClient())
-	fs := conf.GetConfig().DB.Files
-	if fs == nil {
-		*fs = "fs"
-	}
+	fs := conf.Get().DB.Files
 
-	log.Debug().Printf("Saving file with md5 checksum %x to %s bucket", md5, *fs)
+	log.Debug().Printf("Saving file with md5 checksum %x to %s bucket", md5, fs)
 
 	bucket, err := gridfs.NewBucket(
 		mongoDB,
-		options.GridFSBucket().SetName(*fs),
+		options.GridFSBucket().SetName(fs),
 	)
 	if err != nil {
-		log.Error().Printf("Failed to initialize GridFS bucket %s", *fs)
+		log.Error().Printf("Failed to initialize GridFS bucket %s", fs)
 		internal.HandleError(err)
 	}
 
@@ -95,14 +89,11 @@ func SaveFile(file []byte, md5 []byte, details FileDetails) {
 
 func AddPostToFile(md5 []byte, postNo int64) {
 	mongoDB := DB(MongoClient())
-	fs := conf.GetConfig().DB.Files
-	if fs == nil {
-		*fs = "fs"
-	}
+	fs := conf.Get().DB.Files
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	mongoDB.Collection(fmt.Sprintf("%s.%s", *fs, "files")).UpdateOne(
+	mongoDB.Collection(fmt.Sprintf("%s.%s", fs, "files")).UpdateOne(
 		ctx,
 		bson.D{{"metadata", bson.D{{"md5", md5}}}},
 		bson.D{{"$push", bson.D{{"posts", postNo}}}},

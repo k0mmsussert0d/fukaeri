@@ -4,8 +4,6 @@ import (
 	"io"
 	"log"
 	"os"
-
-	"github.com/k0mmsussert0d/fukaeri/internal/conf"
 )
 
 var (
@@ -16,7 +14,7 @@ var (
 )
 
 func Auto() {
-	switch level := conf.GetConfig().LogLevel; level {
+	switch level := "INFO"; level {
 	case "ERROR":
 		Init(io.Discard, io.Discard, io.Discard, os.Stderr)
 	case "WARN":

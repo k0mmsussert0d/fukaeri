@@ -12,7 +12,7 @@ import (
 )
 
 func InitCollections(ctx context.Context) {
-	boards := conf.GetConfig().Archive.Boards
+	boards := conf.Get().Archive.Boards
 	log.Info().Printf("Initializing database collections for boards: %v", boards)
 
 	for _, board := range boards {
