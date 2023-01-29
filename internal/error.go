@@ -28,10 +28,12 @@ func HandleError(err error) {
 	if err != nil {
 		ferr := WrapError(err, err.Error())
 		if errors.Is(err, context.Canceled) { // silence context cancelation
-			log.Debug().Println(ferr.Message)
+			log.Logger().Debug(ferr.Message)
 		} else {
-			log.Error().Println(ferr.Message)
-			log.Error().Println(ferr.StackTrace)
+			log.Logger().Error(
+				"message", ferr.Message,
+				"stack", ferr.StackTrace,
+			)
 		}
 		panic(ferr)
 	}

@@ -26,7 +26,10 @@ func FileExists(md5 []byte) bool {
 	mongoDB := DB(MongoClient())
 	fs := conf.Get().DB.Files
 
-	log.Debug().Printf("Checking if file with md5 checksum %x exists in %s bucket", md5, fs)
+	log.Logger().Debugw("Checkinf if file already exists in the bucket",
+		"md5", md5,
+		"bucket", fs,
+	)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
@@ -35,10 +38,14 @@ func FileExists(md5 []byte) bool {
 		bson.D{{"metadata", bson.D{{"md5", md5}}}},
 	)
 	if res.Err() != mongo.ErrNoDocuments {
-		log.Debug().Printf("File with md5 checksum %x exists in the bucket", md5)
+		log.Logger().Debugw("File already exists",
+			"md5", md5,
+		)
 		return true
 	} else {
-		log.Debug().Printf("Could not find file with md5 checksum %x in the bucket", md5)
+		log.Logger().Debugw("File has not been archived yet",
+			"md5", md5,
+		)
 		return false
 	}
 
@@ -48,14 +55,19 @@ func SaveFile(file []byte, md5 []byte, details FileDetails) {
 	mongoDB := DB(MongoClient())
 	fs := conf.Get().DB.Files
 
-	log.Debug().Printf("Saving file with md5 checksum %x to %s bucket", md5, fs)
+	log.Logger().Debugw("Saving file",
+		"md5", md5,
+		"bucket", fs,
+	)
 
 	bucket, err := gridfs.NewBucket(
 		mongoDB,
 		options.GridFSBucket().SetName(fs),
 	)
 	if err != nil {
-		log.Error().Printf("Failed to initialize GridFS bucket %s", fs)
+		log.Logger().Errorw("Failed to initialize GridFS bucket",
+			"bucket", fs,
+		)
 		internal.HandleError(err)
 	}
 
@@ -66,7 +78,9 @@ func SaveFile(file []byte, md5 []byte, details FileDetails) {
 		options.GridFSUpload().SetMetadata(bson.D{{"md5", md5}}),
 	)
 	if err != nil {
-		log.Error().Printf("Failed to open UploadStream for %s file", md5sum)
+		log.Logger().Errorw("Failed to open UploadStream",
+			"file", md5sum,
+		)
 		internal.HandleError(err)
 	}
 
@@ -74,17 +88,23 @@ func SaveFile(file []byte, md5 []byte, details FileDetails) {
 	internal.HandleError(err)
 
 	if _, err = uploadStream.Write(file); err != nil {
-		log.Error().Printf("Failed to upload %s file", md5sum)
+		log.Logger().Errorw("Failed to save file",
+			"md5", md5sum,
+		)
 		internal.HandleError(err)
 	}
 
 	err = uploadStream.Close()
 	if err != nil {
-		log.Error().Printf("Failed to commit %s file metadata", md5sum)
+		log.Logger().Errorw("Failed to commit file metadata",
+			"md5", md5sum,
+		)
 	}
 	internal.HandleError(err)
 
-	log.Debug().Printf("File with md5 checksum %x successfully saved", md5)
+	log.Logger().Debugw("File saved successfully",
+		"md5", md5,
+	)
 }
 
 func AddPostToFile(md5 []byte, postNo int64) {

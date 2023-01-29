@@ -13,10 +13,10 @@ import (
 
 func InitCollections(ctx context.Context) {
 	boards := conf.Get().Archive.Boards
-	log.Info().Printf("Initializing database collections for boards: %v", boards)
+	log.Logger().Infof("Initializing database collections for boards: %v", boards)
 
 	for _, board := range boards {
-		log.Info().Printf("Initializing %v collection", board)
+		log.Logger().Infof("Initializing %v collection", board)
 		CreateCollectionIfNotExists(board, ctx)
 	}
 }

@@ -17,7 +17,10 @@ import (
 func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
 
-	log.Info().Printf("Started archiver for thread %v/%v", board, id)
+	log.Logger().Infow("Started new thread archived",
+		"board", board,
+		"id", id,
+	)
 
 	var lastUpdateTime time.Time
 
@@ -56,27 +59,48 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 
 		refreshThreadTicker.Stop()
 		if lastUpdateTime.IsZero() {
-			log.Info().Printf("Fetching full %v/%v thread for the first time", board, id)
+			log.Logger().Infow("Fetching full thread for the first time",
+				"board", board,
+				"id", id,
+			)
 			thread, err := chanapi.Thread(ctx, board, strconv.Itoa(id))
 			internal.HandleError(err)
 			refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
 			writeToDB(*thread)
 		} else {
-			log.Info().Printf("Refreshing thread %v/%v for new posts since %v", board, id, lastUpdateTime)
+			log.Logger().Infow("Refreshing thread",
+				"board", board,
+				"id", id,
+				"modifiedSince", lastUpdateTime,
+			)
 			thread, err := chanapi.ThreadSince(ctx, board, strconv.Itoa(id), lastUpdateTime)
 			internal.HandleError(err)
 			if thread != nil {
-				log.Info().Printf("Updating thread %v/%v as new posts appeared", board, id)
-				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, initRefreshRate)
+				log.Logger().Infow("Updating thread as new posts appeared",
+					"board", board,
+					"id", id,
+				)
+				writeToDB(*thread)
 				refreshRateIdx = 0
 				refreshThreadTicker.Reset(time.Duration(initRefreshRate) * time.Second)
-				writeToDB(*thread)
+				log.Logger().Debugw("Next refresh scheduled",
+					"board", board,
+					"id", id,
+					"nextRefreshIn", initRefreshRate,
+				)
 			} else {
-				log.Info().Printf("No new posts for thread %v/%v", board, id)
+				log.Logger().Infow("No new posts appeared",
+					"board", board,
+					"id", id,
+				)
 				if refreshRateIdx < len(refreshRates)-1 {
 					refreshRateIdx += 1
 				}
-				log.Debug().Printf("Next refresh for %v/%v in %v seconds", board, id, refreshRates[refreshRateIdx])
+				log.Logger().Debugw("Next refresh scheduled",
+					"board", board,
+					"id", id,
+					"nextRefreshIn", refreshRates[refreshRateIdx],
+				)
 				refreshThreadTicker.Reset(time.Duration(refreshRates[refreshRateIdx]) * time.Second)
 			}
 		}
@@ -90,7 +114,10 @@ func ArchiveThread(board string, id int, chanapi apiclient.ApiClient, wg *sync.W
 		case <-refreshThreadTicker.C:
 			continue
 		case <-ctx.Done():
-			log.Info().Printf("Thread %v/%v archiver received exit signal. Shutting down.", board, id)
+			log.Logger().Infow("Thread archived received exit signal, shutting down",
+				"board", board,
+				"id", id,
+			)
 			return
 		}
 	}

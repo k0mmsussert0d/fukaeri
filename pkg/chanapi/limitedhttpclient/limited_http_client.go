@@ -24,21 +24,27 @@ func New() *LimitedHttpClient {
 }
 
 func (client *LimitedHttpClient) Do(ctx context.Context, req *http.Request) (res *http.Response, body []byte, err error) {
-	log.Debug().Printf("Request %v %v queued. Waiting...", req.Method, req.URL)
+	log.Logger().Debugw("Request queued, waiting",
+		"method", req.Method,
+		"url", req.URL,
+	)
 	select {
 	case <-client.rateLimiterChan(ctx):
-		log.Debug().Printf("Sending request %v %v", req.Method, req.URL)
-
+		log.Logger().Debugw("Sending request now",
+			"method", req.Method,
+			"url", req.URL,
+		)
 		res, err = client.httpClient.Do(req)
 		if err != nil {
-			return
+			log.Logger().Errorw("HTTP request failed", requestLogEntry(req))
+			return nil, nil, err
 		}
 
 		defer res.Body.Close()
 		body, err = ioutil.ReadAll(res.Body)
 		return
 	case <-ctx.Done():
-		log.Debug().Printf("Request %v %v aborted", req.Method, req.URL)
+		log.Logger().Debugw("Request aborted", requestLogEntry(req))
 
 		return nil, nil, ctx.Err()
 	}
@@ -57,4 +63,11 @@ func (client *LimitedHttpClient) rateLimiterChan(ctx context.Context) <-chan int
 		}
 	}()
 	return readyStream
+}
+
+func requestLogEntry(req *http.Request) interface{} {
+	return []string{
+		"method", req.Method,
+		"url", req.URL.String(),
+	}
 }

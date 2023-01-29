@@ -86,7 +86,10 @@ func (client *MockedHttpClient) Do(ctx context.Context, req *http.Request) (*htt
 	method, host := req.Method, req.URL.String()
 	response, exists := client.requests[Request{method, host}]
 	if !exists {
-		log.Error().Panicf("Response to %v %v has not been defined", method, host)
+		log.Logger().Panicw("Response to the request has not been defined",
+			"method", method,
+			"host", host,
+		)
 	}
 
 	responseStatusString, exists := httpStatuses[response.code]

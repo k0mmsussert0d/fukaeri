@@ -12,18 +12,21 @@ import (
 )
 
 func main() {
-	// log.Init(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 	conf.Init()
-	log.Auto()
+
+	log.Init()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go func() {
 		for {
 			<-c
-			log.Warn().Print("RECEIVED EXIT SIGNAL! Terminating all workers")
+			log.Logger().Warn("Received exit signal, terminating all workers")
+			log.Logger().Sync()
 			cancel()
 		}
 	}()
